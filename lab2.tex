@@ -1,0 +1,167 @@
+	% 代码分析：模块功能、涉及到的类、类关系、数据结构及关键代码等；
+	% 任务要求，设计任务要求；
+	% 设计：详细的设计方案，相关的数据结构、算法描述，可采用伪代码等形式化描述
+	% 实现：修改哪些类、如何修改、为什么修改等；
+	% 测试：测试用例，测试结果及结果分析，测试运行界面等；
+	% 调试：调试方法，遇到的问题及解决方案等；
+	% 结论与展望：完成的主要工作、收获、进一步的工作，建议、体会、心得等；
+
+\section{Experiment 2: Multivariate Linear Regression}
+
+\subsection{预处理数据}
+
+首先读取数据：
+
+\begin{lstlisting}[language=matlab,title={读入 ex2?.dat}]
+x = load('ex2x.dat');
+y = load('ex2y.dat');
+m = length(y);
+x = [ones(m, 1), x];
+\end{lstlisting}
+
+对数据进行特征缩放，也就是进行标准化，公式为：
+
+\[
+x_{i,\text{scaled}}=\frac{x_i-\mu_i}{\sigma_i}
+\]
+
+其中 $\mu_i$ 为均值、$\sigma_i$ 为标准差，在 matlab 中有函数 mean() 与 std() 可以计算，如此可让不同数量级的特征位于统一尺度下、加速收敛。
+
+\begin{lstlisting}[language=matlab,title={标准化 x}]
+sigma = std(x);
+mu = mean(x);
+x(:, 2) = (x(:, 2) - mu(2)) / sigma(2);
+x(:, 3) = (x(:, 3) - mu(3)) / sigma(3);
+\end{lstlisting}
+
+\subsection{$ J(\mathbf \theta )$ 的计算}
+
+$J(\mathbf \theta ) $ 为代价函数，表示迭代的代价。计算公式如下：
+
+\begin{align}
+    h_{\mathbf \theta }(\mathbf x)&=\mathbf \theta ^T\mathbf x=\sum_{i = 0}^{n} \theta _ix_i\\
+    \theta _j &=\theta _j-\alpha \frac{1}{m}\sum_{i = 1}^{m}  (h_{\theta } (x^{(i)})-y^{(i)})x_j ^i\\
+    J(\mathbf \theta )&=\frac{1}{2m} (\mathbf X\mathbf \theta -\mathbf y)^T(\mathbf X\mathbf \theta -\mathbf y)
+\end{align}
+
+于是不难写出代码（加入 J\_history 记录 $J(\mathbf \theta ) $ 的值方便追踪过程）：
+
+\begin{lstlisting}[language=matlab,title={gradientDescent.m}]
+function [theta, J_history] = gradientDescent(x, y, theta, alpha, iterations)
+    m = length(y);
+    J_history = zeros(iterations, 1);
+    
+    for i = 1:iterations
+        error = x * theta - y;
+        J_history(i) = (error' * error) / (2 * m);
+        
+        gradient = (x' * error) / m;
+        theta = theta - alpha * gradient;
+    end
+end
+\end{lstlisting}
+
+\subsection{选择学习率}
+
+首先设置学习参数：
+
+\begin{lstlisting}[language=matlab,title={梯度下降参数}]
+iterations = 50;
+theta_init = zeros(size(x, 2), 1);
+\end{lstlisting}
+
+可用 gradientDescent 测试不同学习率下收敛速率：
+
+\begin{lstlisting}[language=matlab,title={对比不同学习率}]
+[theta1, J1] = gradientDescent(x, y, theta_init, 1, iterations);
+[theta2, J2] = gradientDescent(x, y, theta_init, 0.2, iterations);
+[theta3, J3] = gradientDescent(x, y, theta_init, 0.04, iterations);
+\end{lstlisting}
+
+绘图，得：
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=10cm]{imgs/gradientDescent.svg}
+\end{figure} 
+
+\begin{lstlisting}[language=matlab,title={画图}]
+figure;
+plot(0:iterations-1, J1, 'r-', 'DisplayName', 'alpha = 1');
+hold on;
+plot(0:iterations-1, J2, 'b-', 'DisplayName', 'alpha = 0.2');
+plot(0:iterations-1, J3, 'g-', 'DisplayName', 'alpha = 0.04');
+legend;
+xlabel('Iterations');
+ylabel('Cost J');
+hold off;
+\end{lstlisting}
+
+\subsection{questions}
+
+\begin{lstlisting}[language=c++,title={5.1 - 问题描述}]
+Observe the changes in the cost function happens as the learning rate changes. What happens when the learning rate is too small? Too large?
+\end{lstlisting}
+
+当 $\alpha$ 太小时，梯度下降收敛速度很慢，参数更新幅度很小，需要更多迭代才能接近最优解；当 $\alpha$ 太大时，梯度下降可能会越过最优解，导致 $J(\mathbf{\theta})$ 震荡，甚至无法收敛。
+
+\begin{lstlisting}[language=c++,title={5.2 - 问题描述}]
+Using the best learning rate that you found, run gradient descent until convergence to find
+(a) The final values of theta
+(b) The predicted price of a house with 1650 square feet and 3 bedrooms. Don’t forget to scale your features when you make this prediction!
+\end{lstlisting}
+
+\begin{enumerate}
+    \item $J(\mathbf \theta) = 2.043\times 10^9, \mathbf \theta =[3.404\times 10^5,1.106\times 10^5,-6.625\times 10^3]$；
+    \item 预测值为 $2.93\times 10^5$。
+\end{enumerate}
+
+\begin{lstlisting}[language=c++,title={6.1 - 问题描述}]
+In your program, use the formula above to calculate theta. Remember that while you don’t need to scale your features, you still need to add an intercept term.
+\end{lstlisting}
+
+结果为$\theta =[8.960\times 10^4,1.392\times 10^2,-8.738\times 10^3]$。
+
+\begin{lstlisting}[language=c++,title={6.2 - 问题描述}]
+Once you have found theta from this method, use it to make a price prediction for a 1650-square-foot house with 3 bedrooms. Did you get the same price that you found through gradient descent?
+\end{lstlisting}
+
+结果为 $2.931\times 10^5$。
+
+\subsection{完整代码}
+
+gradientDescent.m 在上文中已给出
+
+\begin{lstlisting}[language=matlab,title={完整代码}]
+clear;
+x = load('ex2x.dat');
+y = load('ex2y.dat');
+m = length(y);
+x = [ones(m, 1), x];
+
+% 特征缩放
+sigma = std(x);
+mu = mean(x);
+x(:, 2) = (x(:, 2) - mu(2)) / sigma(2);
+x(:, 3) = (x(:, 3) - mu(3)) / sigma(3);
+
+% 梯度下降参数
+iterations = 50;
+theta_init = zeros(size(x, 2), 1);
+
+% 不同学习率下的梯度下降
+[theta1, J1] = gradientDescent(x, y, theta_init, 1, iterations);
+[theta2, J2] = gradientDescent(x, y, theta_init, 0.2, iterations);
+[theta3, J3] = gradientDescent(x, y, theta_init, 0.04, iterations);
+
+% 绘图
+figure;
+plot(0:iterations-1, J1, 'r-', 'DisplayName', 'alpha = 1');
+hold on;
+plot(0:iterations-1, J2, 'b-', 'DisplayName', 'alpha = 0.2');
+plot(0:iterations-1, J3, 'g-', 'DisplayName', 'alpha = 0.04');
+legend;
+xlabel('Iterations');
+ylabel('Cost J');
+hold off;
+\end{lstlisting}

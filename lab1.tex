@@ -1,0 +1,232 @@
+	% 代码分析：模块功能、涉及到的类、类关系、数据结构及关键代码等；
+	% 任务要求，设计任务要求；
+	% 设计：详细的设计方案，相关的数据结构、算法描述，可采用伪代码等形式化描述
+	% 实现：修改哪些类、如何修改、为什么修改等；
+	% 测试：测试用例，测试结果及结果分析，测试运行界面等；
+	% 调试：调试方法，遇到的问题及解决方案等；
+	% 结论与展望：完成的主要工作、收获、进一步的工作，建议、体会、心得等；
+
+\section{Experiment 1: Linear Regression}
+\subsection{2D Linear Regression}
+
+首先读入数据到 matlab：
+
+\begin{lstlisting}[language=matlab,title={matlab load}]
+x = load('ex1x.dat');
+y = load('ex1y.dat');
+\end{lstlisting}
+
+使用 plot 函数可以进行绘制：
+
+\begin{lstlisting}[language=matlab,title={matlab figure}]
+figure % open a new figure window
+plot(x,y,'o');
+ylabel('Height in meters')
+xlabel('Age in years')
+\end{lstlisting}
+
+得到的图像为：
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=12cm]{imgs/1.svg}
+\end{figure} 
+
+将 $x$ 增加偏置项，这样就可以进行线性回归：
+
+\begin{lstlisting}[language=matlab,title={matlab regression init}]
+m=length(y); % store the number of training examples
+x=[ones(m,1),x]; % Add a column of ones to x
+\end{lstlisting}
+
+线性回归的计算模型为：
+
+\[
+h_{\theta}(x)=\theta^{T} x=\sum_{i=0}^{n} \theta_{i} x_{i}
+\]
+
+线性回归梯度下降的公式为：
+
+\[
+\theta_{j}:=\theta_{j}-\alpha \frac{1}{m} \sum_{i=1}^{m}\left(h_{\theta}\left(x^{(i)}\right)-y^{(i)}\right) x_{j}^{(i)}
+\]
+
+\begin{lstlisting}[language=matlab,title={Linear Regression}]
+alpha=0.07;
+iterations=1500;
+theta=zeros(2,1);
+
+for iter=1:iterations
+    h=x*theta;
+    error=h-y;
+    theta=theta-(alpha/m)*(x'*error);
+end
+
+disp(theta);
+\end{lstlisting}
+
+输出 0.7502 与 0.0639，也就是 $\theta_1=0.7502, \theta_2=0.0639$，可以在原图像基础上绘制回归直线：
+
+\begin{lstlisting}[language=matlab,title={figure regression}]
+hold on
+plot(x(:,2),x*theta,'-')
+legend('Training data','Linear regression')
+\end{lstlisting}
+
+得到图像：
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=12cm]{imgs/1-2.svg}
+\end{figure} 
+
+计算 3.5 岁与 7 岁同学的身高，直接代入得：
+
+\begin{lstlisting}[language=matlab,title={linear predict}]
+disp([1,3.5]*theta)
+disp([1,7]*theta)
+\end{lstlisting}
+
+得到 0.9737 与 1.1973。
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width = 15cm]{imgs/hw1_3.jpg}
+% \end{figure} 
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width = 15cm]{imgs/hw1_4.jpg}
+% \end{figure} 
+
+\subsection{Understanding $J(\theta)$}
+
+由 $J(\theta )=\frac{1}{2m}\sum _{i=1}^n\left (h_\theta (x_i)-y_i\right ) ^2$，不难写出代码：
+
+\begin{lstlisting}[language=matlab,title={calculate $J(\theta)$}]
+theta1_vals=linspace(-10,10,100);
+theta2_vals=linspace(-10,10,100);
+[J,theta1,theta2]=meshgrid(theta1_vals,theta2_vals);
+J_vals=zeros(size(theta1));
+
+for i=1:size(theta1,1)
+    for j=1:size(theta1,2)
+        theta_temp=[theta1(i,j);theta2(i,j)];
+        h=x*theta_temp;
+        J_vals(i,j)=(1/(2*m))*sum((h-y).^2);
+    end
+end
+\end{lstlisting}
+
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=12cm]{imgs/1-3.svg}
+\end{figure} 
+
+不太直观，实际上还可以绘制梯度下降中迭代的“路径”：
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=12cm]{imgs/1-4.svg}
+\end{figure} 
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=12cm]{imgs/1-5.svg}
+\end{figure} 
+
+\subsection{Programming}
+
+绘制路径部分的完整代码如下：
+
+\begin{lstlisting}[language=matlab,title={figure surface \& contour plot}]
+x=load('ex1x.dat');
+y=load('ex1y.dat');
+m=length(y);
+x=[ones(m,1),x];
+theta1_vals=linspace(-10,10,50);
+theta2_vals=linspace(-10,10,50);
+[theta1,theta2]=meshgrid(theta1_vals,theta2_vals);
+J_vals=zeros(size(theta1));
+
+for i=1:size(theta1,1)
+    for j=1:size(theta1,2)
+        theta_temp=[theta1(i,j);theta2(i,j)];
+        h=x*theta_temp;
+        J_vals(i,j)=(1/(2*m))*sum((h-y).^2);
+    end
+end
+
+alpha=0.07;
+iterations=1000;
+theta=[6;7.5];
+J_history=zeros(iterations,1);
+theta_history=zeros(iterations,2);
+
+for iter=1:iterations
+    h=x*theta;
+    error=h-y;
+    theta=theta-(alpha/m)*(x'*error);
+    J_history(iter)=(1/(2*m))*sum((h-y).^2);
+    theta_history(iter,:)=theta';
+end
+
+figure;
+surf(theta1,theta2,J_vals);
+hold on;
+
+view(30,30);
+shading interp;
+colorbar;
+
+final_cost=(1/(2*m))*sum((x*theta-y).^2);
+plot3(theta(1),theta(2),final_cost,'r*','MarkerSize',10);
+xlabel('\theta_1');
+ylabel('\theta_2');
+zlabel('J(\theta)');
+title('Surface plot of J(\theta) for Linear Regression');
+
+for i=1:10:iterations
+    if i+10<=iterations
+        plot3(theta_history(i,1),theta_history(i,2),...
+              (1/(2*m))*sum((x*theta_history(i,:)'-y).^2),'bo','MarkerSize',5);
+        quiver3(theta_history(i,1),theta_history(i,2),...
+                 (1/(2*m))*sum((x*theta_history(i,:)'-y).^2),...
+                 theta_history(i+10,1)-theta_history(i,1),...
+                 theta_history(i+10,2)-theta_history(i,2),...
+                 0,'k','LineWidth',2,'AutoScale','off');
+    end
+end
+
+gradient=(1/m)*(x'*(h-y));
+quiver3(theta(1),theta(2),final_cost,gradient(1),gradient(2),0,'k','LineWidth',2,'AutoScale','off');
+
+text(theta(1),theta(2),final_cost,sprintf('  (%.2f,%.2f)',theta(1),theta(2)),'Color','red');
+
+hold off;
+
+print('surface_plot.svg','-dsvg');
+
+figure;
+contour(theta1,theta2,J_vals,50);
+hold on;
+
+plot(theta(1),theta(2),'r*','MarkerSize',10);
+xlabel('\theta_1');
+ylabel('\theta_2');
+title('Contour plot of J(\theta) for Linear Regression');
+colorbar;
+
+num_arrows=10;
+for i=1:num_arrows:iterations
+    if i+num_arrows<=iterations
+        quiver(theta_history(i,1),theta_history(i,2),...
+               theta_history(i+num_arrows,1)-theta_history(i,1),...
+               theta_history(i+num_arrows,2)-theta_history(i,2),...
+               'k','LineWidth',2,'AutoScale','off');
+    end
+end
+
+hold off;
+\end{lstlisting}

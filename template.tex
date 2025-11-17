@@ -1,0 +1,47 @@
+	% 代码分析：模块功能、涉及到的类、类关系、数据结构及关键代码等；
+	% 任务要求，设计任务要求；
+	% 设计：详细的设计方案，相关的数据结构、算法描述，可采用伪代码等形式化描述
+	% 实现：修改哪些类、如何修改、为什么修改等；
+	% 测试：测试用例，测试结果及结果分析，测试运行界面等；
+	% 调试：调试方法，遇到的问题及解决方案等；
+	% 结论与展望：完成的主要工作、收获、进一步的工作，建议、体会、心得等；
+
+\section{Experiment 2: Multivariate Linear Regression}
+
+\subsection{预处理数据}
+
+首先读取数据：
+
+\begin{lstlisting}[language=matlab,title={读入 ex2?.dat}]
+x = load('ex2x.dat');
+y = load('ex2y.dat');
+m = length(y);
+x = [ones(m, 1), x];
+\end{lstlisting}
+
+\subsection{$ J(\mathbf \theta )$ 的计算}
+
+\subsection{选择学习率}
+
+\subsection{questions}
+
+\begin{lstlisting}[language=c++,title={5.1 - 问题描述}]
+\end{lstlisting}
+
+\begin{lstlisting}[language=c++,title={5.2 - 问题描述}]
+\end{lstlisting}
+
+\begin{lstlisting}[language=c++,title={6.1 - 问题描述}]
+\end{lstlisting}
+
+结果为$\theta =[8.960\times 10^4,1.392\times 10^2,-8.738\times 10^3]$。
+
+\begin{lstlisting}[language=c++,title={6.2 - 问题描述}]
+\end{lstlisting}
+
+结果为 $2.931\times 10^5$。
+
+\subsection{完整代码}
+
+\begin{lstlisting}[language=matlab,title={完整代码}]
+\end{lstlisting}

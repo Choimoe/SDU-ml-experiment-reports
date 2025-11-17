@@ -1,0 +1,222 @@
+	% 代码分析：模块功能、涉及到的类、类关系、数据结构及关键代码等；
+	% 任务要求，设计任务要求；
+	% 设计：详细的设计方案，相关的数据结构、算法描述，可采用伪代码等形式化描述
+	% 实现：修改哪些类、如何修改、为什么修改等；
+	% 测试：测试用例，测试结果及结果分析，测试运行界面等；
+	% 调试：调试方法，遇到的问题及解决方案等；
+	% 结论与展望：完成的主要工作、收获、进一步的工作，建议、体会、心得等；
+
+\section{Experiment 3: Logistic Regression and Newton's Method}
+
+\subsection{预处理数据}
+
+首先读取数据：
+
+\begin{lstlisting}[language=matlab,title={读入 ex4?.dat}]
+x = load('ex4x.dat');
+y = load('ex4y.dat');
+
+[m, n] = size(x);
+x = [ones(m, 1), x];
+\end{lstlisting}
+
+\subsection{输入数据可视化}
+
+\begin{lstlisting}[language=matlab,title={绘制图像}]
+pos = find(y == 1);
+neg = find(y == 0);
+
+figure; hold on;
+plot(x(pos, 2), x(pos, 3), 'k+', 'LineWidth', 2, 'MarkerSize', 7);
+plot(x(neg, 2), x(neg, 3), 'ko', 'MarkerFaceColor', 'y', 'MarkerSize', 7);
+xlabel('考试1成绩');
+ylabel('考试2成绩');
+legend('已录取', '未录取');
+hold off;
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=10cm]{imgs/3-1.svg}
+\end{figure} 
+
+\subsection{牛顿法}
+
+这里我将 g 写成了一个函数：
+
+\begin{lstlisting}[language=matlab,title={sigmoid.m}]
+function g = sigmoid(z)
+    g = 1.0 ./ (1.0 + exp(-z));
+end
+\end{lstlisting}
+
+可以对着写出 $J(\theta)$ 的函数：
+
+\[
+J\left( \theta \right)  = \frac{1}{m}\mathop{\sum }\limits_{{i = 1}}^{m}\left\lbrack  {-{y}^{\left( i\right) }\log \left( {{h}_{\theta }\left( {x}^{\left( i\right) }\right) }\right)  - \left( {1 - {y}^{\left( i\right) }}\right) \log \left( {1 - {h}_{\theta }\left( {x}^{\left( i\right) }\right) }\right) }\right\rbrack
+\]
+
+\begin{lstlisting}[language=matlab,title={costFunction.m}]
+function [J, grad] = costFunction(theta, x, y)
+    m = length(y);
+    h = sigmoid(x * theta);
+    
+    J = (1/m) * sum(-y .* log(h) - (1 - y) .* log(1 - h));
+    grad = (1/m) * (x' * (h - y));
+end
+
+\end{lstlisting}
+
+Hessian 矩阵为：
+
+\[
+{\nabla }_{\theta }J = \frac{1}{m}\mathop{\sum }\limits_{{i = 1}}^{m}\left( {{h}_{\theta }\left( {x}^{\left( i\right) }\right)  - {y}^{\left( i\right) }}\right) {x}^{\left( i\right) }
+\]
+
+故可以在牛顿法写出：
+
+\[
+{\theta }^{\left( t + 1\right) } = {\theta }^{\left( t\right) } - {H}^{-1}{\nabla }_{\theta }J
+\]
+
+\begin{lstlisting}[language=matlab,title={newtonsMethod.m}]
+function [theta, J_history] = newtonsMethod(x, y, theta, max_iters)
+    m = length(y);
+    J_history = zeros(max_iters, 1);
+
+    for iter = 1:max_iters
+        h = sigmoid(x * theta);
+        grad = (1/m) * (x' * (h - y));
+        H = (1/m) * (x' * diag(h .* (1 - h)) * x);
+        theta = theta - H\grad;
+
+        J_history(iter) = (1/m) * sum(-y .* log(h) - (1 - y) .* log(1 - h));
+    end
+end
+\end{lstlisting}
+
+然后可以画出决策边界：
+
+\begin{lstlisting}[language=matlab,title={plotDecisionBoundary.m}]
+function plotDecisionBoundary(theta, x, y)
+    pos = find(y == 1);
+    neg = find(y == 0);
+    
+    figure; hold on;
+    plot(x(pos, 2), x(pos, 3), 'k+', 'LineWidth', 2, 'MarkerSize', 7);
+    plot(x(neg, 2), x(neg, 3), 'ko', 'MarkerFaceColor', 'y', 'MarkerSize', 7);
+    
+    plot_x = [min(x(:,2))-2, max(x(:,2))+2];
+    plot_y = (-1./theta(3)) .* (theta(2).*plot_x + theta(1));
+    
+    plot(plot_x, plot_y, 'b-', 'LineWidth', 2);
+    
+    xlabel('考试1成绩');
+    ylabel('考试2成绩');
+    legend('已录取', '未录取', '决策边界');
+    hold off;
+end
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=10cm]{imgs/3-2.svg}
+\end{figure} 
+
+\subsection{questions}
+
+\begin{lstlisting}[language=c++,title={4.1 - 问题描述}]
+What values of theta did you get? How many iterations were required for convergence?（你得到的 theta 值是多少？需要多少次迭代才能收敛？）
+\end{lstlisting}
+
+\begin{lstlisting}[language=matlab,title={4.1 - 求 theta 值与观察收敛速度}]
+figure;
+plot(1:max_iters, J_history(1:max_iters), '-b', 'LineWidth', 2);
+xlabel('迭代次数');
+ylabel('成本函数 J(theta)');
+title('成本函数随迭代次数的变化');
+
+fprintf('优化后的 theta 值为：\n');
+disp(theta);
+fprintf('收敛所需的迭代次数：%d\n', max_iters);
+\end{lstlisting}
+
+得到值为：
+
+\begin{lstlisting}[language=matlab,title={4.1 - $\theta$ 值}]
+优化后的 theta 值为：
+  -16.3787
+    0.1483
+    0.1589
+\end{lstlisting}
+
+以及对应的函数图像：
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=10cm]{imgs/3-3.svg}
+\end{figure} 
+
+可以看出，在 5 次迭代时就已收敛。
+
+\begin{lstlisting}[language=c++,title={4.2 - 问题描述}]
+What is the probability that a student with a score of 20 on Exam 1 and a score of 80 on Exam 2 will not be admitted?（考试 1 的成绩为 20 分，考试 2 的成绩为 80 分的学生不被录取的概率是多少？）
+\end{lstlisting}
+
+\begin{lstlisting}[language=matlab,title={4.2 - 预测概率}]
+student_scores = [1, 20, 80];
+prob = sigmoid(student_scores * theta);
+
+fprintf('不被录取的概率: %f\n', prob);
+\end{lstlisting}
+
+得到结果：
+
+\begin{lstlisting}[language=matlab,title={预测概率}]
+不被录取的概率: 0.331978
+\end{lstlisting}
+
+\subsection{完整代码}
+
+\begin{lstlisting}[language=matlab,title={完整代码}]
+clear; clc;
+
+x = load('ex4x.dat');
+y = load('ex4y.dat');
+
+[m, n] = size(x);
+x = [ones(m, 1), x];
+
+pos = find(y == 1);
+neg = find(y == 0);
+
+figure; hold on;
+plot(x(pos, 2), x(pos, 3), 'k+', 'LineWidth', 2, 'MarkerSize', 7);
+plot(x(neg, 2), x(neg, 3), 'ko', 'MarkerFaceColor', 'y', 'MarkerSize', 7);
+xlabel('考试1成绩');
+ylabel('考试2成绩');
+legend('已录取', '未录取');
+hold off;
+
+initial_theta = zeros(n + 1, 1);
+max_iters = 15;
+[theta, J_history] = newtonsMethod(x, y, initial_theta, max_iters);
+
+% 绘制决策边界
+plotDecisionBoundary(theta, x, y);
+
+figure;
+plot(1:max_iters, J_history(1:max_iters), '-b', 'LineWidth', 2);
+xlabel('迭代次数');
+ylabel('成本函数 J(theta)');
+title('成本函数随迭代次数的变化');
+
+fprintf('优化后的 theta 值为：\n');
+disp(theta);
+fprintf('收敛所需的迭代次数：%d\n', max_iters);
+
+student_scores = [1, 20, 80];
+prob = sigmoid(student_scores * theta);
+
+fprintf('不被录取的概率: %f\n', prob);
+\end{lstlisting}

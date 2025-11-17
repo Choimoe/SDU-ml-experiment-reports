@@ -1,0 +1,127 @@
+\documentclass[UTF8]{ctexart}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{xeCJK} 
+\usepackage{authblk} 
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{amsmath, amsthm, amssymb, amsfonts}
+\usepackage{thmtools}
+\usepackage{ctex}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{framed}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tcolorbox}
+\usepackage{svg}
+\usepackage{algorithm}
+\usepackage{ctex}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{algorithmic}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+
+
+\tikzset{
+    block/.style={rectangle, draw, fill=blue!20, text width=5em, text centered, rounded corners, minimum height=4em},
+    line/.style={draw, -{Latex[]}},
+    cloud/.style={draw, ellipse,fill=red!20, minimum height=2em},
+    crypto/.style={rectangle, draw, fill=red!50, text width=5em, text centered, minimum height=2em},
+    arch/.style={rectangle, draw, fill=yellow!50, text width=2em, text centered, minimum height=2em},
+    kernel/.style={rectangle, draw, fill=green!50, text width=10em, text centered, minimum height=2em},
+    exception/.style={draw, -{Latex[width=2pt]}, line width=2pt, color=red}
+}
+
+\colorlet{LightGray}{White!90!Periwinkle}
+\colorlet{LightOrange}{Orange!15}
+\colorlet{LightGreen}{Green!15}
+\bibliographystyle{plain}
+\geometry{a4paper}
+\geometry{left=2cm} 
+\geometry{right=2cm} 
+\geometry{top=3cm} 
+\geometry{bottom=3cm} 
+\pagestyle{fancy}
+\fancyhf{}
+\newcommand{\HRule}[1]{\rule{\linewidth}{#1}}
+
+\declaretheoremstyle[name=Theorem,]{thmsty}
+\declaretheorem[style=thmsty,numberwithin=section]{theorem}
+\tcolorboxenvironment{theorem}{colback=LightGray}
+
+\setstretch{1.2}
+\geometry{
+    textheight=9in,
+    textwidth=5.5in,
+    top=1in,
+    headheight=12pt,
+    headsep=25pt,
+    footskip=30pt
+}
+
+\lstset{
+    numbers=left, 
+    numberstyle= \tiny, 
+    keywordstyle= \color{ blue!70},%设置关键字颜色
+    commentstyle= \color{red!50!green!50!blue!50}, %设置注释颜色
+    frame=shadowbox, % 阴影效果
+    rulesepcolor= \color{ red!20!green!20!blue!20} ,
+    escapeinside=``, % 英文分号中可写入中文
+    xleftmargin=2em, %距离左边界2em
+    aboveskip=1em,
+    framexleftmargin=2em,
+    basicstyle=\ttfamily,
+    columns=fullflexible,%可以自动换行
+    linewidth=1\linewidth, %设置代码块与行同宽
+    breaklines=true,%在单词边界处换行。
+    showstringspaces=false， %去掉空格时产生的下划的空格标志, 设置为true则出现
+    breakatwhitespace=ture,%可以在空格处换行
+    escapechar=`%设置转义字符为反引号
+}
+\rhead{202222130201 单红旗}
+\lhead{机器学习实验报告}
+\rfoot{\thepage}
+\begin{document}
+\title{ \normalsize \textsc{}
+		\\ [2.0cm]
+		\HRule{2.0pt} \\
+		\LARGE \textbf{{机器学习实验报告}
+		\HRule{2.0pt} \\ [0.6cm] {————Experiment 4: Regularized Regression} \vspace*{10\baselineskip}}
+		}
+\date{}
+\author{单红旗 \\ 
+		计算机科学与技术（学堂） \\
+		泰山学堂 \\
+		2024.12.16}
+
+\maketitle
+
+\newpage
+\tableofcontents
+
+\newpage
+\include{lab1}
+
+\newpage
+\include{lab2}
+\newpage
+\include{lab3}
+\newpage
+\include{lab4}
+\newpage
+\include{lab5}
+\newpage
+\include{lab7}
+
+\end{document} 
+
+

@@ -1,0 +1,450 @@
+	% 代码分析：模块功能、涉及到的类、类关系、数据结构及关键代码等；
+	% 任务要求，设计任务要求；
+	% 设计：详细的设计方案，相关的数据结构、算法描述，可采用伪代码等形式化描述
+	% 实现：修改哪些类、如何修改、为什么修改等；
+	% 测试：测试用例，测试结果及结果分析，测试运行界面等；
+	% 调试：调试方法，遇到的问题及解决方案等；
+	% 结论与展望：完成的主要工作、收获、进一步的工作，建议、体会、心得等；
+
+\section{Experiment 7: SVM}
+
+\subsection{SVM}
+
+支持向量机是一种监督学习模型，广泛应用于分类和回归问题。其核心思想是通过一个超平面将不同类别的样本数据进行分隔，从而实现分类。在二分类问题中，假设数据集为\(\{(x_i, y_i)\}\)，其中\(x_i \in \mathbb{R}^n\)是特征向量，\(y_i \in \{-1, +1\}\)是类别标签。SVM的目标是找到一个决策超平面，该平面可以将两类数据分开，并且尽可能使得两类数据之间的间隔（即“边界”）最大化。
+
+一个超平面可以表示为
+
+\[
+w \cdot x + b = 0
+\]
+
+其中，\(w\)是法向量，决定了超平面的方向，\(b\)是偏置，控制超平面的位置。
+
+SVM的目标是最大化两类数据点到超平面的间隔。这个间隔可以通过支持向量（离超平面最近的样本点）来定义。为了最大化间隔，我们需要优化以下目标：
+
+\[
+\min_{w, b} \frac{1}{2} \|w\|^2
+\]
+
+同时满足约束条件：
+
+\[
+y_i (w \cdot x_i + b) \geq 1, \quad \forall i
+\]
+
+这意味着每个样本点都被正确分类，并且位于超平面的一侧。
+
+
+首先读取数据：
+
+\begin{lstlisting}[language=matlab,title={main.m}]
+data1 = load('training_1.txt');
+X1 = data1(:, 1:2);
+y1 = data1(:, 3);
+
+test1 = load('test_1.txt');
+X_test1 = test1(:, 1:2);
+y_test1 = test1(:, 3);
+\end{lstlisting}
+
+SVM 的训练：
+
+\begin{lstlisting}[language=matlab,title={trainSVM.m}]
+function [C, w, b] = trainSVM(X, y, C)
+    H = (y * y') .* (X * X');
+    f = -ones(size(y));
+    A = [];
+    b = [];
+    Aeq = y';
+    beq = 0;
+    lb = zeros(size(y));
+    ub = 0.00001 * ones(size(y));
+    
+    alpha = quadprog(H, f, A, b, Aeq, beq, lb, ub);
+
+    w = sum((alpha .* y) .* X)';
+    b = mean(y - X * w);
+end
+\end{lstlisting}
+
+SVM 的测试：
+
+\begin{lstlisting}[language=matlab,title={testSVM.m}]
+function misclassified_fraction = testSVM(X_test, y_test, w, b)
+    predictions = X_test * w + b;
+    predicted_labels = sign(predictions);
+    
+    misclassified = sum(predicted_labels ~= y_test) / length(y_test);
+    misclassified_fraction = misclassified;
+end
+\end{lstlisting}
+
+不难画出训练集与测试集上的图像：
+
+\begin{lstlisting}[language=matlab,title={plotDecisionBoundary.m}]
+function plotDecisionBoundary(X, y, w, b, title_text)
+    % Function to plot decision boundary and data points
+    figure;
+    x1_range = linspace(min(X(:, 1)), max(X(:, 1)), 100);
+    x2_range = linspace(min(X(:, 2)), max(X(:, 2)), 100);
+    [x1_grid, x2_grid] = meshgrid(x1_range, x2_range);
+    X_grid = [x1_grid(:), x2_grid(:)];
+    predictions_grid = X_grid * w + b;
+    
+    contour(x1_grid, x2_grid, reshape(predictions_grid, size(x1_grid)), [0, 0], 'k', 'LineWidth', 2);
+    hold on;
+    scatter(X(:, 1), X(:, 2), 50, y, 'filled');
+    title(title_text);
+    xlabel('x1');
+    ylabel('x2');
+    legend('Decision Boundary', 'Class 1', 'Class -1');
+end
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=10cm]{imgs/7-1-1.svg}
+\end{figure} 
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=10cm]{imgs/7-1-2.svg}
+\end{figure} 
+
+\subsection{Handwritten Digit Recognition}
+
+首先参考给出的 strimage.m 读入文件：
+
+\begin{lstlisting}[language=matlab,title={main.m}]
+acc = [];
+X = [];
+y = [];
+
+fidin = fopen('train-01-images.svm');
+i = 1;
+apres = [];
+while ~feof(fidin)
+    tline = fgetl(fidin);
+    apres{i} = tline;
+    i = i + 1;
+end
+
+for i = 1:12665
+    a = char(apres(i));
+    lena = size(a, 2);
+    xy = sscanf(a(4:lena), '%d:%d');
+    lenxy = size(xy, 1);
+    
+    grid = zeros(1, 784);
+    for j = 2:2:lenxy
+        if (xy(j) <= 0)
+            break
+        end
+        grid(xy(j-1)) = xy(j) * 100 / 255;  % Scale pixel value
+    end
+    
+    X = [X; grid];
+    if startsWith(a, '+')
+        y = [y, 1];
+    elseif startsWith(a, '-')
+        y = [y, -1];
+    end
+end
+fclose(fidin);
+
+Cval = [0.0001, 0.001, 1, 10, 100, 1000, 10000, 1000000, 100000000];
+\end{lstlisting}
+
+训练代码为：
+
+\begin{lstlisting}[language=matlab,title={main.m}]
+for i = 1:length(Cval)
+    C = Cval(i);
+    [w, b] = trainSVM(X, y', C);
+    
+    train_error = computeError(X, y', w, b);
+    fprintf('C = %.7f, Training Error: %.4f\n', C, train_error);
+    
+    fidin = fopen('test-01-images.svm');
+    apres = [];
+    while ~feof(fidin)
+        tline = fgetl(fidin);
+        apres{i} = tline;
+        i = i + 1;
+    end
+    X_test = [];
+    y_test = [];
+    
+    for j = 1:2115
+        a = char(apres(j));
+        lena = size(a, 2);
+        xy = sscanf(a(4:lena), '%d:%d');
+        lenxy = size(xy, 1);
+        
+        grid = zeros(1, 784);  % Initialize feature vector for test image
+        for k = 2:2:lenxy
+            if (xy(k) <= 0)
+                break
+            end
+            grid(xy(k-1)) = xy(k) * 100 / 255;  % Scale pixel value
+        end
+        
+        X_test = [X_test; grid];
+        if startsWith(a, '+')
+            y_test = [y_test, 1];
+        elseif startsWith(a, '-')
+            y_test = [y_test, -1];
+        end
+    end
+    fclose(fidin);
+    
+    test_error = computeError(X_test, y_test', w, b);
+    fprintf('C = %.7f, Test Error: %.4f\n', C, test_error);
+
+    acc = [acc, test_error];
+end
+\end{lstlisting}
+
+可以得到收敛结果：
+
+\begin{lstlisting}[language=matlab,title={main.m}]
+Optimization completed: The relative dual feasibility, 6.508655e-12,
+is less than options.OptimalityTolerance = 1.000000e-08, the complementarity measure,
+1.205339e-09, is less than options.OptimalityTolerance, and the relative maximum constraint
+violation, 1.100637e-18, is less than options.ConstraintTolerance = 1.000000e-08.
+\end{lstlisting}
+
+可以找出无法分类的图像：
+
+\begin{lstlisting}[language=matlab,title={main.m}]
+misclassified_idx = findMisclassified(X_train, y_train, w0, b0);
+visualizeMisclassified(X_train, misclassified_idx);
+\end{lstlisting}
+
+\begin{lstlisting}[language=matlab,title={findMisclassified.m}]
+function misclassified_idx = findMisclassified(X, y, w, b)
+    % Function to find the index of a misclassified example
+    predictions = X * w + b;
+    predicted_labels = sign(predictions);
+    misclassified_idx = find(predicted_labels ~= y, 1, 'first'); % Find the first misclassified example
+end
+\end{lstlisting}
+
+\begin{lstlisting}[language=matlab,title={visualizeMisclassified.m}]
+function visualizeMisclassified(X, idx)
+    % Function to visualize a misclassified example
+    misclassified_image = reshape(X(idx, :), [28, 28]); % Reshape to 28x28 image
+    figure;
+    imshow(misclassified_image, []);
+    title('Misclassified Image');
+end
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=5cm]{imgs/7-2-1.svg}
+\end{figure} 
+
+
+\subsection{Non-Linear SVM}
+
+进行升维：
+
+\begin{lstlisting}[language=matlab,title={trainNonLinearSVM.m}]
+            K(i, j) = exp(-r * norm(X(i, :) - X(j, :))^2);
+\end{lstlisting}
+
+不难写出训练函数：
+
+\begin{lstlisting}[language=matlab,title={trainNonLinearSVM.m}]
+function [alpha, w, b] = trainNonLinearSVM(X, y, C, r)
+    % Train a non-linear SVM using the RBF kernel with specified regularization parameter C and gamma (r)
+    n = size(X, 1);
+    
+    % Compute the kernel matrix K
+    K = zeros(n, n);
+    for i = 1:n
+        for j = 1:n
+            K(i, j) = exp(-r * norm(X(i, :) - X(j, :))^2);
+        end
+    end
+    
+    % Set up the optimization problem for SVM
+    H = (y * y') .* K;
+    f = -ones(n, 1);
+    A = [];
+    b = [];
+    Aeq = y';
+    beq = 0;
+    lb = zeros(n, 1);
+    ub = C * ones(n, 1);
+    
+    % Solve the quadratic programming problem
+    alpha = quadprog(H, f, A, b, Aeq, beq, lb, ub);
+    
+    % Calculate the weight vector w and bias b
+    w = sum((alpha .* y) .* X, 1)';
+    b = mean(y - K * (alpha .* y));
+end
+\end{lstlisting}
+
+
+\begin{figure}[H]
+    \centering
+    \includesvg[width=18cm]{imgs/7-3-1.svg}
+\end{figure} 
+
+\subsection{完整代码}
+
+\begin{lstlisting}[language=matlab,title={SVM - main.m}]
+clear;
+data1 = load('training_1.txt');
+X1 = data1(:, 1:2);
+y1 = data1(:, 3);
+test1 = load('test_1.txt');
+X_test1 = test1(:, 1:2);
+y_test1 = test1(:, 3);
+[C, w, b] = trainSVM(X1, y1, 0.00001); % Regularization term C
+plotDecisionBoundary(X1, y1, w, b, 'Dataset 1: Decision Boundary');
+misclassified_fraction = testSVM(X_test1, y_test1, w, b);
+fprintf('Fraction of misclassified examples for Dataset 1: %.2f\n', misclassified_fraction);
+data2 = load('training_2.txt');
+X2 = data2(:, 1:2);
+y2 = data2(:, 3);
+test2 = load('test_2.txt');
+X_test2 = test2(:, 1:2);
+y_test2 = test2(:, 3);
+[C2, w2, b2] = trainSVM(X2, y2, 0.00001);
+plotDecisionBoundary(X2, y2, w2, b2, 'Dataset 2: Decision Boundary');
+misclassified_fraction2 = testSVM(X_test2, y_test2, w2, b2);
+fprintf('Fraction of misclassified examples for Dataset 2: %.2f\n', misclassified_fraction2);
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=matlab,title={plotDecisionBoundary.m}]
+function plotDecisionBoundary(X, y, alpha, r, C)
+    % This function plots the decision boundary for a non-linear SVM with RBF kernel.
+    % X: Training data (n x 2)
+    % y: Labels (n x 1)
+    % alpha: Coefficients from SVM solution (n x 1)
+    % r: Gamma parameter for RBF kernel
+    % C: Regularization parameter
+
+    % Create a grid for plotting the decision boundary
+    [X1, X2] = meshgrid(linspace(min(X(:, 1)), max(X(:, 1)), 100), ...
+                        linspace(min(X(:, 2)), max(X(:, 2)), 100));
+    grid_points = [X1(:), X2(:)];
+    
+    % Compute the kernel matrix for grid points
+    K_test = zeros(size(grid_points, 1), size(X, 1));
+    for i = 1:size(grid_points, 1)
+        for j = 1:size(X, 1)
+            K_test(i, j) = exp(-r * norm(grid_points(i, :) - X(j, :))^2);
+        end
+    end
+    
+    % Compute decision values
+    decisions = K_test * (alpha .* y);
+    
+    % Plot decision boundary
+    contour(X1, X2, reshape(decisions, size(X1)), [0, 0], 'LineWidth', 2);
+    hold on;
+    
+    % Scatter plot for training data
+    scatter(X(:, 1), X(:, 2), 50, y, 'filled');
+    hold off;
+    
+    % Labels
+    xlabel('x_1');
+    ylabel('x_2');
+    title(['Decision Boundary: C = ', num2str(C), ', r = ', num2str(r)]);
+    colorbar;
+end
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=matlab,title={loadImageData.m}]
+function [X, y] = loadImageData(filename)
+    % 读取SVM格式的图像数据（每个图像数据为一行）
+    fidin = fopen(filename); % 打开文件
+    i = 1;
+    apres = {};
+
+    % 读取每一行数据
+    while ~feof(fidin)
+        tline = fgetl(fidin); % 从文件读取一行
+        apres{i} = tline;
+        i = i + 1;
+    end
+
+    fclose(fidin);
+
+    % 初始化数据矩阵
+    X = [];
+    y = [];
+    
+    % 遍历读取的每一行
+    for n = 1:length(apres)
+        a = char(apres{n});
+        
+        % 获取标签
+        label = str2double(a(1));
+        y = [y; label];
+        
+        % 获取特征数据 (每个图像为784维)
+        lena = length(a);
+        xy = sscanf(a(4:lena), '%d:%d'); % 解析特征
+        
+        % 初始化一个784维的特征向量
+        grid = zeros(1, 784); 
+        lenxy = length(xy) / 2;
+        
+        % 填充特征数据到特征向量
+        for i = 1:2:lenxy
+            index = xy(i); % 特征索引
+            value = xy(i+1); % 特征值
+            if index > 0
+                grid(index) = value * 100 / 255; % 归一化处理
+            end
+        end
+        
+        % 将特征向量添加到特征矩阵
+        X = [X; grid];
+    end
+    
+    % 转换为double类型
+    X = double(X);
+    y = double(y);
+end
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=matlab,title={trainNonLinearSVM.m}]
+[X_train, y_train] = loadData('training_3.text');
+
+C_values = [1, 100, 1000];
+r_values = [0.1, 10, 100];
+
+figure;
+hold on;
+
+for i = 1:length(C_values)
+    for j = 1:length(r_values)
+        C = C_values(i);
+        r = r_values(j);
+        
+        [alpha, w, b] = trainNonLinearSVM(X_train, y_train, C, r);
+        
+        subplot(length(C_values), length(r_values), (i-1) * length(r_values) + j);
+        plotDecisionBoundary(X_train, y_train, alpha, r, C);
+        
+        title(['C = ' num2str(C) ', r = ' num2str(r)]);
+    end
+end
+
+xlabel('x_1');
+ylabel('x_2');
+sgtitle('Non-linear SVM Decision Boundaries');
+grid on;
+hold off;
+\end{lstlisting}

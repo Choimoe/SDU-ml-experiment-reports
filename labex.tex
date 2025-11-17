@@ -1,0 +1,201 @@
+	% 代码分析：模块功能、涉及到的类、类关系、数据结构及关键代码等；
+	% 任务要求，设计任务要求；
+	% 设计：详细的设计方案，相关的数据结构、算法描述，可采用伪代码等形式化描述
+	% 实现：修改哪些类、如何修改、为什么修改等；
+	% 测试：测试用例，测试结果及结果分析，测试运行界面等；
+	% 调试：调试方法，遇到的问题及解决方案等；
+	% 结论与展望：完成的主要工作、收获、进一步的工作，建议、体会、心得等；
+
+\section{世界杯数据可视化分析}
+
+\subsection{预处理数据}
+
+首先准备环境：
+
+\begin{lstlisting}[language=python,title={天池python环境}]
+!python -m pip install seaborn
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+\end{lstlisting}
+
+预处理数据：
+
+\begin{lstlisting}[language=python,title={读入csv，并进行一定的数据清洗}]
+
+hist_worldcup= pd.read_csv('downloads/190813/WorldCupsSummary.csv')
+matches = pd.read_csv('downloads/190813/WorldCupMatches.csv')
+
+hist_worldcup = hist_worldcup.replace(['Germany FR'],'Germany')
+matches = matches.replace(['Germany FR'],'Germany') 
+matches['Home Team Goals']= matches['Home Team Goals'].astype(int)
+matches['Away Team Goals']= matches['Away Team Goals'].astype(int)
+matches['result'] = matches['Home Team Goals'].astype(str)+"-"+matches['Away Team Goals'].astype(str)
+matches
+\end{lstlisting}
+
+\subsection{历届世界杯冠军队伍的地区分布情况}
+
+此部分旨在展示自世界杯开始以来，各大赛区获得冠军的情况。通过分析不同地区的胜利次数，我们可以了解到足球强区的发展趋势和变迁。
+
+\begin{lstlisting}[language=python,title={Number of World Cup Titles by Continent}]
+champion_by_continent = hist_worldcup.groupby('WinnerContinent')['Winner'].value_counts()
+
+plt.figure(figsize=(12,8))
+champion_by_continent.unstack().plot(kind='bar', stacked=True, figsize=(12,8))
+plt.title('Number of World Cup Titles by Continent')
+plt.xlabel('Continent')
+plt.ylabel('Number of Titles')
+plt.xticks(rotation=45)
+plt.legend(title='Winner', bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.tight_layout()
+plt.show()
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=15cm]{imgs/ex-1.png}
+\end{figure} 
+
+\subsection{每年世界杯进球数的变化趋势}
+
+这部分内容专注于探索每年世界杯比赛中总进球数的变化趋势。这可以帮助我们理解比赛风格的变化、防守战术的发展以及其他影响得分效率的因素。
+
+\begin{lstlisting}[language=python,title={Total Goals Scored in World Cup per Year}]
+def custom_xticks(data, step):
+    ticks_position = range(0, len(data), step)
+    labels = [data.iloc[i] for i in ticks_position]
+    return ticks_position, labels
+
+hist_worldcup['Year_Short'] = hist_worldcup['Year'].apply(lambda x: f"{x//100}{str(x)[-2:]}")
+fig, ax = plt.subplots(figsize=(12,8))
+plt.title('Total Goals Scored in World Cup per Year')
+hist_worldcup.plot(x='Year_Short', y='GoalsScored', ax=ax, marker='o', color='b', linestyle='-', markersize=8)
+ax.set_xlabel('Year')
+ax.set_ylabel('Total Goals Scored')
+ax.grid(True)
+ticks_position, labels = custom_xticks(hist_worldcup['Year_Short'], step=4)
+plt.xticks(ticks=ticks_position, labels=labels, rotation=45)
+plt.show()
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=15cm]{imgs/ex-2.png}
+\end{figure} 
+
+\subsection{历届世界杯总参赛队伍数的变化趋势}
+
+这一部分展示了随着世界杯赛事的发展，参赛队伍总数目的变化情况。通过分析这些数据，我们可以观察到足球全球化进程中的重要趋势和变化。
+
+\begin{lstlisting}[language=python,title={Number of Qualified Teams}]
+fig, ax = plt.subplots(figsize=(12,8))
+plt.title('Number of Qualified Teams in World Cup')
+hist_worldcup.plot(x='Year_Short', y='QualifiedTeams', ax=ax, marker='s', color='g', linestyle='-', markersize=8)
+ax.set_xlabel('Year')
+ax.set_ylabel('Number of Qualified Teams')
+ax.grid(True)
+ticks_position, labels = custom_xticks(hist_worldcup['Year_Short'], step=4)
+plt.xticks(ticks=ticks_position, labels=labels, rotation=45)
+plt.show()
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=15cm]{imgs/ex-3.png}
+\end{figure} 
+
+\subsection{历年世界杯各队进决赛的频率分析}
+
+\begin{lstlisting}[language=python,title={Number of Qualified Teams}]
+finalists = pd.concat([hist_worldcup['Winner'], hist_worldcup['Second']], axis=0)
+
+finalists_count = finalists.value_counts()
+
+plt.figure(figsize=(12,8))
+finalists_count.plot(kind='bar', color='c')
+plt.title('Number of Times Teams Reached the Final')
+plt.xlabel('Team')
+plt.ylabel('Number of Finals')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=15cm]{imgs/ex-4.png}
+\end{figure} 
+
+
+\subsection{半决赛队伍次数统计}
+
+统计各支球队进入半决赛的次数，可以让我们了解哪些球队在世界杯历史上表现最为突出。这不仅展示了传统强队的持续影响力，也能发现一些稳定发挥的劲旅。这对于预测未来比赛趋势和识别潜在黑马非常重要。
+
+\begin{lstlisting}[language=python,title={Number of Semi-finals Teams}]
+countries = hist_worldcup[['Winner','Second','Third','Fourth']].apply(pd.value_counts).reset_index().fillna(0)
+countries['SemiFinal'] = countries['Winner'] + countries['Second']+countries['Third']+countries['Fourth']
+countries['Final'] = countries['Winner']+countries['Second']
+countries
+\end{lstlisting}
+
+\begin{lstlisting}[language=python,title={Number of Semi-finals Teams}]
+clrs= ['red' if (i>=8) else 'y' if (5<=i<8) else 'pink' if (3<=i<5) else 'orangered' if (i==2) else 'yellow' for i in countries['SemiFinal']]
+
+fig, ax= plt.subplots(figsize=(20,8))
+plt.title('SemiFinal Statistic')
+sns.barplot(data=countries,x='index',y='SemiFinal',palette=clrs,linewidth=2.5, edgecolor=".2")
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+ax.spines['left'].set_visible(False)
+ax.spines['bottom'].set_visible(False)
+ax.set_ylabel(None)
+ax.set_xlabel(None)
+plt.tick_params(labelleft=False, left=False,labelsize=14)
+
+
+plt.xticks(rotation=45)
+
+for i in ax.containers:
+    ax.bar_label(i,fontsize=15);
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=15cm]{imgs/ex-5.png}
+\end{figure} 
+
+
+\subsection{历年进球数变化趋势}
+
+历年世界杯进球数的变化趋势反映了足球风格和战术的演变。尽管参赛队伍增加，单届世界杯总进球数尚未超过175球。分析这一趋势，可以帮助我们理解防守与进攻策略的发展，并期待未来赛事能否打破纪录。这为球迷提供了更丰富的视角来欣赏世界杯的魅力。
+
+\begin{lstlisting}[language=python,title={Trend of Goal Scoring Over the Years}]
+fig, ax= plt.subplots(figsize=(12,8))
+plt.title('Goals Number')
+hist_worldcup.plot.scatter(x='GoalsScored',y='Year',ax=ax,zorder=2,s=100)
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+ax.spines['left'].set_visible(False)
+ax.spines['bottom'].set_visible(False)
+ax.set_ylabel(None)
+ax.set_xlabel(None)
+ax.grid(visible=True)
+ax.tick_params(axis='both', which='major', labelsize=15)
+ax.set_yticks(hist_worldcup['Year'].tolist())
+ax.set_xticks([50,75,100,125,150,175,200])
+plt.tick_params(bottom=False, left=False)
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=15cm]{imgs/ex-6.png}
+\end{figure} 
+
+我们可以期待2022年卡塔尔世界杯是否能够打破这一纪录，带来更多精彩的进球。
+
+\subsection{实验收获}
+
+在本次实验中，我深入分析了世界杯比赛数据，重点关注了比赛结果、球员表现以及其他比赛统计。通过数据预处理，我学会了如何清洗和统一数据，使其更加一致和可用。使用matplotlib和seaborn进行可视化，让我能够更直观地理解不同年份的进球趋势、比赛规模变化和不同阶段的比赛特点。此外，我还掌握了如何对比赛胜负情况进行统计，分析各队的表现，并通过多角度的数据探索得出有价值的结论。整体来说，这次实验不仅提升了我的数据处理和分析能力，也让我更加熟悉了如何通过数据来讲述体育赛事背后的故事。
